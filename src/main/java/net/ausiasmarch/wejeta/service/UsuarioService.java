@@ -1,13 +1,15 @@
 package net.ausiasmarch.wejeta.service;
 
+import org.apache.tomcat.util.file.ConfigurationSource.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;
+import net.ausiasmarch.wejeta.entity.TipousuarioEntity;
 import net.ausiasmarch.wejeta.entity.UsuarioEntity;
-import net.ausiasmarch.wejeta.exception.UnauthorizedAccessException;
+import net.ausiasmarch.wejeta.exception.ResourceNotFoundException;
 import net.ausiasmarch.wejeta.repository.TipousuarioRepository;
 import net.ausiasmarch.wejeta.repository.UsuarioRepository;
 
@@ -49,12 +51,14 @@ public class UsuarioService {
     }
 
     public UsuarioEntity update(UsuarioEntity oUsuarioEntity) {
+            oUsuarioEntity.setTipousuario(oTipousuarioRepository.findById(oUsuarioEntity.getTipousuario().getId()).orElseThrow( () -> new ResourceNotFoundException("Tipousuario no encontrado")));
            return oUsuarioRepository.save(oUsuarioEntity);
         
     }
 
     public UsuarioEntity create(UsuarioEntity oUsuarioEntity) {
-       oUsuarioEntity.setTipousuario(oTipousuarioRepository.findById(oUsuarioEntity.getTipousuario().getId()).get());
-       return oUsuarioRepository.save(oUsuarioEntity);
+        TipousuarioEntity oTipousuarioEntity = oTipousuarioRepository.findById(oUsuarioEntity.getTipousuario().getId()).orElseThrow( () -> new ResourceNotFoundException("Tipousuario no encontrado"));
+        oUsuarioEntity.setTipousuario(oTipousuarioEntity);
+        return oUsuarioRepository.save(oUsuarioEntity);
     }
 }
