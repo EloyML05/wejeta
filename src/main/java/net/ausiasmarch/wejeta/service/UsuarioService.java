@@ -11,13 +11,14 @@ import lombok.AllArgsConstructor;
 import net.ausiasmarch.wejeta.entity.TipousuarioEntity;
 import net.ausiasmarch.wejeta.entity.UsuarioEntity;
 import net.ausiasmarch.wejeta.exception.ResourceNotFoundException;
-import net.ausiasmarch.wejeta.repository.TipousuarioRepository;
+import net.ausiasmarch.wejeta.exception.UnauthorizedAccessException;
 import net.ausiasmarch.wejeta.repository.UsuarioRepository;
 
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+
 @Service
 @AllArgsConstructor
 public class UsuarioService {
@@ -28,33 +29,24 @@ public class UsuarioService {
 
     AuthService oAuthService;
 
-    TipousuarioRepository oTipousuarioRepository;
-
-    public String RestrictedArea() {
-        if (oHttpServletRequest.getAttribute("email") == null) {
-            return "No tienes permisos para acceder a esta zona";
-        } else {
-            return "Bienvenido a la zona restringida";
-        }
+    public UsuarioEntity getByEmail(String email) {
+        return oUsuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("El usuario con email " + email + " no existe"));
     }
-    
-    // public UsuarioEntity get(Long id){
-    //     if (oAuthService.isContableWithItsOwnData(id) || oAuthService.isAdmin()) {
-    //         return oUsuarioRepository.findById(id).get();
-    //     } else {
-    //         throw new UnauthorizedAccessException("No tienes permisos para acceder a esta zona");
-    //     }        
-    // }
 
     public UsuarioEntity get(Long id) {
-    Optional<UsuarioEntity> usuario = oUsuarioRepository.findById(id);
-    if (usuario.isPresent()) {
-        return usuario.get();
-    } else {
-        throw new EntityNotFoundException("Usuario no encontrado con ID: " + id);
+        if (oAuthService.isContableWithItsOwnData(id) || oAuthService.isAdmin()
+                || oAuthService.isAuditorWithItsOwnData(id)) {
+            Optional<UsuarioEntity> usuario = oUsuarioRepository.findById(id);
+            if (usuario.isPresent()) {
+                return usuario.get();
+            } else {
+                throw new EntityNotFoundException("Usuario no encontrado con ID: " + id);
+            }
+        } else {
+            throw new UnauthorizedAccessException("No tienes permisos para ver el usuario");
+        }
     }
-    }
-
 
     public Page<UsuarioEntity> getPage(Pageable oPageable, Optional<String> filter) {
 
@@ -67,6 +59,7 @@ public class UsuarioService {
             return oUsuarioRepository.findAll(oPageable);
         }
     }
+
     public Long count() {
         return oUsuarioRepository.count();
     }
